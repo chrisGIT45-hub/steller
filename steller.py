@@ -47,6 +47,12 @@ def apply_custom_style():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
         
+        @property --angle {{
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }}
+        
         .stApp {{
             {background_style}
             background-size: cover;
@@ -72,22 +78,35 @@ def apply_custom_style():
             text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
         }}
 
-        /* General styling for UI elements for better visibility */
+        /* --- UPDATED: Separated Styling --- */
+
+        /* Button Styling with animated border on hover */
         .stButton>button {{
             border-radius: 50px;
-            border: 2px solid #5a2a8a;
+            border: 3px solid #5a2a8a;
             background-color: rgba(12, 14, 24, 0.7);
             transition: all 0.3s ease-in-out;
         }}
         .stButton>button:hover {{
-            border-color: #a434b4;
-            box-shadow: 0 0 10px #a434b4;
+            --angle: 0deg;
+            border-image: conic-gradient(from var(--angle), #0c0e18, #5a2a8a, #a434b4, #5a2a8a, #0c0e18) 1;
+            animation: 5s an-border-spin linear infinite;
         }}
+
+        /* Selectbox and Text Input Styling (no animated border) */
         .stSelectbox>div, .stTextInput>div {{
             border-radius: 50px;
-            border: 2px solid #5a2a8a;
+            border: 2px solid #5a2a8a; /* A simple, static border */
             background-color: rgba(12, 14, 24, 0.7);
         }}
+
+        @keyframes an-border-spin {{
+          to {{
+            --angle: 360deg;
+          }}
+        }}
+        /* --- End of Updated CSS --- */
+
         .stExpander, .stMetric, .stForm {{
             background-color: rgba(22, 27, 34, 0.85);
             border: 1px solid #30363d;
@@ -210,7 +229,7 @@ if loaded_data is None:
 
 st.markdown("---")
 
-# --- UPDATED: TARGET SELECTION WITH LIVE SEARCH ---
+# --- TARGET SELECTION WITH LIVE SEARCH ---
 st.header("1. Target Selection")
 st.write("Begin by selecting a known exoplanet from the archive or define a hypothetical one for analysis.")
 
@@ -225,14 +244,12 @@ with selection_col:
         with widget_col:
             search_query = st.text_input("Search a planet by name...", label_visibility="collapsed", placeholder="Type to search for a planet...")
             
-            # Live filtering of planets
             if search_query:
                 filtered_planets = [p for p in all_planets if search_query.lower() in p.lower()]
             else:
                 filtered_planets = all_planets
 
-            # Display "Planet not found" message if no results
-            if len(filtered_planets) <= 1 and search_query: # <=1 to account for "Select a Planet..."
+            if len(filtered_planets) <= 1 and search_query:
                  st.warning("Planet not found")
                  selected_planet_name = "Select a Planet..."
             else:
