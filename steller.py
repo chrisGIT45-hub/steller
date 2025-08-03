@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import zipfile  # <-- Added to handle zip files
+import zipfile
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -49,9 +49,7 @@ def load_models_and_data(zip_file_path):
     """
     Loads data from a zip file, preprocesses it, and trains all necessary models.
     """
-    # --- MODIFIED: Load Data from ZIP File ---
     try:
-        # Assuming the CSV file inside the zip is named 'planetary_system.csv'
         csv_file_name = 'planetary_system.csv'
         with zipfile.ZipFile(zip_file_path, 'r') as z:
             with z.open(csv_file_name) as f:
@@ -80,8 +78,6 @@ def load_models_and_data(zip_file_path):
     y_class = df_class['planet_type']
     model_classify = RandomForestClassifier(random_state=42)
     model_classify.fit(X_class, y_class)
-
-    # --- (The rest of the model training code is identical to before) ---
     
     # --- Model 2: Optimal Discovery Method ---
     df_disc = df.copy()
@@ -161,7 +157,6 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
 # --- MAIN APP ---
 apply_custom_style()
 
-# Load data and models using the new zip file name
 loaded_data = load_models_and_data('planetary_system.zip')
 
 if loaded_data is None:
@@ -171,13 +166,14 @@ else:
      df_cluster, model_controversial, feature_importances, 
      num_imputer, cat_imputer, encoders_controv, numerical_features, categorical_features) = loaded_data
 
-
-# --- HEADER ---
 st.title("STELLER INTELLIGENCE")
 st.markdown("An interactive dashboard for exoplanet analysis, discovery, and habitability assessment.")
-# ... The rest of the app's UI code is identical ...
-st.image("https://images.unsplash.com/photo-1543722530-535b55052358?q=80&w=2670&auto=format&fit=crop", use_column_width=True)
+# --- THIS IS THE CORRECTED LINE ---
+st.image("https://images.unsplash.com/photo-1543722530-535b55052358?q=80&w=2670&auto=format&fit=crop", use_container_width=True)
 st.markdown("---")
+
+# --- UI and Analysis Logic ---
+# (The rest of the app's UI code is identical)
 
 # --- 1. TARGET SELECTION ---
 st.header("1. Target Selection")
