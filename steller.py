@@ -78,7 +78,7 @@ def apply_custom_style():
             text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
         }}
 
-        /* --- UPDATED: Button and Selectbox Styling --- */
+        /* Button and Selectbox Styling */
         .stButton>button, .stSelectbox>div {{
             border-radius: 50px; /* Rounded corners */
             border: 3px solid #5a2a8a; /* Static purple border */
@@ -98,7 +98,6 @@ def apply_custom_style():
             --angle: 360deg;
           }}
         }}
-        /* --- End of Updated CSS --- */
 
         .stExpander, .stMetric, .stForm {{
             background-color: rgba(22, 27, 34, 0.85);
@@ -202,6 +201,10 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
 # --- 4. MAIN APP LAYOUT ---
 apply_custom_style()
 
+# --- Initialize session state for search toggle ---
+if 'search_mode' not in st.session_state:
+    st.session_state.search_mode = False
+
 # --- HEADER SECTION ---
 with st.container():
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
@@ -221,39 +224,51 @@ if loaded_data is None:
 
 st.markdown("---")
 
-# --- UPDATED: TARGET SELECTION ---
+# --- UPDATED: TARGET SELECTION WITH TOGGLE ---
 st.header("1. Target Selection")
 st.write("Begin by selecting a known exoplanet from the archive or define a hypothetical one for analysis.")
-col1, col2 = st.columns([2, 1])
 
-with col1:
+# Create columns for the main selection widgets and the hypothetical planet button
+selection_col, hypothetical_col = st.columns([2, 1])
+
+with selection_col:
+    # Use nested columns for the widget and the toggle icon
+    widget_col, icon_col = st.columns([5, 1])
+
     # Get the full list of planets once
-    all_planets = list(df_main['pl_name'].unique())
-    
-    # Add search input
-    search_query = st.text_input("Search for a planet by name...", key="planet_search")
-    
-    # Filter the list based on the search query
-    if search_query:
-        filtered_planets = [p for p in all_planets if search_query.lower() in p.lower()]
-    else:
-        filtered_planets = all_planets
-        
-    # Prepare options for the selectbox
-    planet_options = ["Select a Planet..."] + filtered_planets
-    
-    selected_planet_name = st.selectbox(
-        "Select a Planet from the NASA Exoplanet Archive:", 
-        options=planet_options,
-        label_visibility="collapsed" # Hides the label since we have the text_input
-    )
+    all_planets = ["Select a Planet..."] + list(df_main['pl_name'].unique())
 
-with col2:
-    st.write("") 
-    st.write("")
-    st.write("") # More spacing for alignment
+    # --- UI Toggle Logic ---
+    if st.session_state.search_mode:
+        # --- SEARCH MODE ---
+        with widget_col:
+            search_query = st.text_input("Search a planet by name...", label_visibility="collapsed", placeholder="Search for a planet...")
+            if search_query:
+                filtered_planets = [p for p in all_planets if search_query.lower() in p.lower()]
+            else:
+                filtered_planets = all_planets # Show all if search is empty
+            selected_planet_name = st.selectbox("Select from results", options=filtered_planets, label_visibility="collapsed")
+        
+        with icon_col:
+            if st.button("↩️ Back"):
+                st.session_state.search_mode = False
+                st.rerun() # Rerun the script to update the UI
+    else:
+        # --- SELECT MODE (DEFAULT) ---
+        with widget_col:
+            selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive", options=all_planets, label_visibility="collapsed")
+        
+        with icon_col:
+            if st.button("🔍"):
+                st.session_state.search_mode = True
+                st.rerun() # Rerun the script to update the UI
+
+with hypothetical_col:
+    # This button is in its own column now
+    st.write("") # Spacer for vertical alignment
     if st.button("Analyze a Hypothetical Planet"):
         st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
+
 
 target_data = None
 is_hypothetical = False
