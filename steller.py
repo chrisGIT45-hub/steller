@@ -47,12 +47,14 @@ def apply_custom_style():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
         
+        /* CSS property for smooth animation */
         @property --angle {{
           syntax: '<angle>';
           initial-value: 0deg;
           inherits: false;
         }}
         
+        /* Main App Styling with Background Image */
         .stApp {{
             {background_style}
             background-size: cover;
@@ -60,11 +62,13 @@ def apply_custom_style():
             background-attachment: fixed;
         }}
 
+        /* Centered header with reduced size */
         .header-container {{
             padding: 4rem 1rem;
             text-align: center;
             color: white;
         }}
+
         .header-container h1 {{
             font-family: 'Orbitron', sans-serif;
             font-size: 3.5rem;
@@ -78,17 +82,10 @@ def apply_custom_style():
             text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
         }}
 
-        /* --- UPDATED: Button and Selectbox Styling --- */
+        /* --- NEW: Animated Star Border for Buttons and Selectbox --- */
         .stButton>button, .stSelectbox>div {{
-            border-radius: 50px; /* Rounded corners */
-            border: 3px solid #5a2a8a; /* Static purple border */
-            transition: all 0.3s ease-in-out; /* Smooth transition */
-            background-color: rgba(12, 14, 24, 0.6);
-        }}
-
-        /* Glow animation on hover only */
-        .stButton>button:hover, .stSelectbox>div:hover {{
             --angle: 0deg;
+            border: 3px solid;
             border-image: conic-gradient(from var(--angle), #0c0e18, #5a2a8a, #a434b4, #5a2a8a, #0c0e18) 1;
             animation: 5s an-border-spin linear infinite;
         }}
@@ -98,8 +95,9 @@ def apply_custom_style():
             --angle: 360deg;
           }}
         }}
-        /* --- End of Updated CSS --- */
+        /* --- End of New CSS --- */
 
+        /* General styling for other UI elements */
         .stExpander, .stMetric, .stForm {{
             background-color: rgba(22, 27, 34, 0.85);
             border: 1px solid #30363d;
@@ -113,7 +111,7 @@ def apply_custom_style():
 # --- 3. DATA LOADING & MODEL TRAINING (CACHED) ---
 @st.cache_resource
 def load_models_and_data(zip_file_path):
-    # (This entire function remains unchanged)
+    # ... (This entire function remains unchanged)
     try:
         csv_file_name = 'planetary_system.csv'
         with zipfile.ZipFile(zip_file_path, 'r') as z:
@@ -183,13 +181,13 @@ def load_models_and_data(zip_file_path):
             num_imputer, cat_imputer, encoders_controv, numerical_features, categorical_features)
 
 def calculate_habitable_zone(star_luminosity):
-    # (This function remains unchanged)
+    # ... (This function remains unchanged)
     inner_boundary = np.sqrt(star_luminosity / 1.1)
     outer_boundary = np.sqrt(star_luminosity / 0.53)
     return inner_boundary, outer_boundary
 
 def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
-    # (This function remains unchanged)
+    # ... (This function remains unchanged)
     hz_inner, hz_outer = calculate_habitable_zone(star_lum)
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[hz_inner, hz_outer, hz_outer, hz_inner], y=[-1, -1, 1, 1], fill="toself", fillcolor='rgba(0, 255, 0, 0.3)', line=dict(color='rgba(255,255,255,0)'), hoverinfo="text", text=f"Habitable Zone<br>{hz_inner:.2f} - {hz_outer:.2f} AU", name='Habitable Zone'))
@@ -198,8 +196,8 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
     fig.update_layout(title="Planet's Position Relative to Habitable Zone", xaxis_title="Distance from Star (AU)", yaxis_visible=False, plot_bgcolor='rgba(12,14,24,0.8)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E0E0E0', showlegend=False)
     return fig
 
-
 # --- 4. MAIN APP LAYOUT ---
+
 apply_custom_style()
 
 # --- HEADER SECTION ---
@@ -221,37 +219,17 @@ if loaded_data is None:
 
 st.markdown("---")
 
-# --- UPDATED: TARGET SELECTION ---
+# --- TARGET SELECTION ---
 st.header("1. Target Selection")
 st.write("Begin by selecting a known exoplanet from the archive or define a hypothetical one for analysis.")
 col1, col2 = st.columns([2, 1])
-
 with col1:
-    # Get the full list of planets once
-    all_planets = list(df_main['pl_name'].unique())
-    
-    # Add search input
-    search_query = st.text_input("Search for a planet by name...", key="planet_search")
-    
-    # Filter the list based on the search query
-    if search_query:
-        filtered_planets = [p for p in all_planets if search_query.lower() in p.lower()]
-    else:
-        filtered_planets = all_planets
-        
-    # Prepare options for the selectbox
-    planet_options = ["Select a Planet..."] + filtered_planets
-    
-    selected_planet_name = st.selectbox(
-        "Select a Planet from the NASA Exoplanet Archive:", 
-        options=planet_options,
-        label_visibility="collapsed" # Hides the label since we have the text_input
-    )
-
+    planet_options = list(df_main['pl_name'].unique())
+    planet_options.insert(0, "Select a Planet...")
+    selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive:", options=planet_options)
 with col2:
     st.write("") 
     st.write("")
-    st.write("") # More spacing for alignment
     if st.button("Analyze a Hypothetical Planet"):
         st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
 
@@ -260,7 +238,7 @@ is_hypothetical = False
 
 if st.session_state.get('show_hypothetical_form', False):
     with st.form("hypothetical_form"):
-        # (This form remains unchanged)
+        # ... (This form remains unchanged)
         st.subheader("Define Hypothetical Planet Parameters")
         st.info("Enter the characteristics of your planet and its star. The models will predict its nature based on these inputs.")
         c1, c2, c3 = st.columns(3)
@@ -286,7 +264,7 @@ if selected_planet_name not in ["Select a Planet...", "Hypothetical Planet"]:
     target_data = df_main[df_main['pl_name'] == selected_planet_name].iloc[[0]]
 
 if target_data is not None:
-    # (The entire analysis block remains unchanged)
+    # ... (The entire analysis block remains unchanged)
     st.success(f"Analysis loaded for: **{selected_planet_name}**")
     st.markdown("---")
     col_profile, col_discovery = st.columns(2)
