@@ -37,7 +37,7 @@ def get_img_as_base64(file):
     return None
 
 def apply_custom_style():
-    """Applies custom CSS for styling, including the background image."""
+    """Applies custom CSS for styling, including the background image and animated borders."""
     img_base64 = get_img_as_base64("bg1.jpg")
     
     background_style = f"background-image: url(data:image/jpg;base64,{img_base64});" if img_base64 else "background-color: #0c0e18;"
@@ -78,26 +78,19 @@ def apply_custom_style():
             text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
         }}
 
-        /* --- UPDATED: Separated Styling --- */
-
-        /* Button Styling with animated border on hover */
-        .stButton>button {{
-            border-radius: 50px;
-            border: 3px solid #5a2a8a;
-            background-color: rgba(12, 14, 24, 0.7);
-            transition: all 0.3s ease-in-out;
+        /* --- UPDATED: Button and Selectbox Styling --- */
+        .stButton>button, .stSelectbox>div {{
+            border-radius: 50px; /* Rounded corners */
+            border: 3px solid #5a2a8a; /* Static purple border */
+            transition: all 0.3s ease-in-out; /* Smooth transition */
+            background-color: rgba(12, 14, 24, 0.6);
         }}
-        .stButton>button:hover {{
+
+        /* Glow animation on hover only */
+        .stButton>button:hover, .stSelectbox>div:hover {{
             --angle: 0deg;
             border-image: conic-gradient(from var(--angle), #0c0e18, #5a2a8a, #a434b4, #5a2a8a, #0c0e18) 1;
             animation: 5s an-border-spin linear infinite;
-        }}
-
-        /* Selectbox and Text Input Styling (no animated border) */
-        .stSelectbox>div, .stTextInput>div {{
-            border-radius: 50px;
-            border: 2px solid #5a2a8a; /* A simple, static border */
-            background-color: rgba(12, 14, 24, 0.7);
         }}
 
         @keyframes an-border-spin {{
@@ -209,15 +202,14 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
 # --- 4. MAIN APP LAYOUT ---
 apply_custom_style()
 
-if 'search_mode' not in st.session_state:
-    st.session_state.search_mode = False
-
+# --- HEADER SECTION ---
 with st.container():
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
     st.title("STELLER INTELLIGENCE")
     st.markdown("### Analyze, classify, and explore exoplanets using machine learning. Predict discovery confidence and uncover new celestial archetypes.")
     st.markdown('</div>', unsafe_allow_html=True)
 
+# Load data and models
 loaded_data = load_models_and_data('planetary_system.zip')
 
 if loaded_data is None:
@@ -229,50 +221,39 @@ if loaded_data is None:
 
 st.markdown("---")
 
-# --- TARGET SELECTION WITH LIVE SEARCH ---
+# --- UPDATED: TARGET SELECTION ---
 st.header("1. Target Selection")
 st.write("Begin by selecting a known exoplanet from the archive or define a hypothetical one for analysis.")
+col1, col2 = st.columns([2, 1])
 
-selection_col, hypothetical_col = st.columns([2, 1])
-
-with selection_col:
-    widget_col, icon_col = st.columns([5, 1])
-
-    all_planets = ["Select a Planet..."] + sorted(list(df_main['pl_name'].unique()))
-
-    if st.session_state.search_mode:
-        with widget_col:
-            search_query = st.text_input("Search a planet by name...", label_visibility="collapsed", placeholder="Type to search for a planet...")
-            
-            if search_query:
-                filtered_planets = [p for p in all_planets if search_query.lower() in p.lower()]
-            else:
-                filtered_planets = all_planets
-
-            if len(filtered_planets) <= 1 and search_query:
-                 st.warning("Planet not found")
-                 selected_planet_name = "Select a Planet..."
-            else:
-                selected_planet_name = st.selectbox("Select from results", options=filtered_planets, label_visibility="collapsed")
-        
-        with icon_col:
-            if st.button("↩️"):
-                st.session_state.search_mode = False
-                st.rerun()
+with col1:
+    # Get the full list of planets once
+    all_planets = list(df_main['pl_name'].unique())
+    
+    # Add search input
+    search_query = st.text_input("Search for a planet by name...", key="planet_search")
+    
+    # Filter the list based on the search query
+    if search_query:
+        filtered_planets = [p for p in all_planets if search_query.lower() in p.lower()]
     else:
-        with widget_col:
-            selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive", options=all_planets, label_visibility="collapsed")
+        filtered_planets = all_planets
         
-        with icon_col:
-            if st.button("🔍"):
-                st.session_state.search_mode = True
-                st.rerun()
+    # Prepare options for the selectbox
+    planet_options = ["Select a Planet..."] + filtered_planets
+    
+    selected_planet_name = st.selectbox(
+        "Select a Planet from the NASA Exoplanet Archive:", 
+        options=planet_options,
+        label_visibility="collapsed" # Hides the label since we have the text_input
+    )
 
-with hypothetical_col:
+with col2:
     st.write("") 
+    st.write("")
+    st.write("") # More spacing for alignment
     if st.button("Analyze a Hypothetical Planet"):
         st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
-
 
 target_data = None
 is_hypothetical = False
