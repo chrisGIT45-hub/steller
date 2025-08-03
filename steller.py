@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import zipfile
+import base64  # Added for image encoding
+import os      # Added for file path handling
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -15,7 +17,7 @@ import warnings
 # Suppress warnings for a cleaner output
 warnings.filterwarnings('ignore')
 
-# --- 1. PAGE CONFIGURATION & STYLING ---
+# --- 1. PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Steller Intelligence",
     page_icon="🪐",
@@ -23,32 +25,76 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# --- Helper function to encode local image ---
+@st.cache_data
+def get_img_as_base64(file):
+    """Encodes a local image file to a Base64 string."""
+    if os.path.exists(file):
+        with open(file, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    return None
+
 def apply_custom_style():
-    """Applies custom CSS for the A-SPACE inspired theme."""
+    """Applies custom CSS for styling, including the background image."""
+    img_base64 = get_img_as_base64("bg1.jpg")
+    
+    # Fallback background color if image is not found
+    background_style = f"background-image: url(data:image/jpg;base64,{img_base64});" if img_base64 else "background-color: #0c0e18;"
+
     st.markdown(
-        """
+        f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
-        .stApp { background-color: #0c0e18; color: #E0E0E0; }
-        h1, h2 { font-family: 'Orbitron', sans-serif; color: #FFFFFF; }
-        h3 { font-family: 'Roboto', sans-serif; color: #c9d1d9; }
-        .stButton>button { border: 2px solid #00A2FF; background-color: transparent; color: #00A2FF; padding: 10px 20px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease-in-out; }
-        .stButton>button:hover { background-color: #00A2FF; color: #0c0e18; border-color: #00A2FF; }
-        .stExpander { border: 1px solid #30363d; border-radius: 8px; }
-        .stMetric { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 15px; }
-        .stMetric > label { font-family: 'Roboto', sans-serif; }
-        .stMetric > div > div > p { font-size: 1.5rem; font-family: 'Orbitron', sans-serif; }
+        
+        /* Main App Styling with Background Image */
+        .stApp {{
+            {background_style}
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+
+        /* Full-screen header container */
+        .header-container {{
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+        }}
+
+        /* Styling for titles and text inside header */
+        .header-container h1 {{
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+        }}
+        .header-container h3 {{
+            font-family: 'Roboto', sans-serif;
+            max-width: 650px;
+            font-size: 1.25rem;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+        }}
+
+        /* Other element styling */
+        .stButton>button {{ border: 2px solid #00A2FF; background-color: rgba(0,0,0,0.3); color: #00A2FF; }}
+        .stButton>button:hover {{ background-color: #00A2FF; color: #0c0e18; }}
+        .stExpander, .stMetric, .stSelectbox > div {{
+            background-color: rgba(22, 27, 34, 0.8);
+            border: 1px solid #30363d;
+            border-radius: 8px;
+        }}
         </style>
         """,
         unsafe_allow_html=True
     )
 
-# --- 2. DATA LOADING & MODEL TRAINING (CACHED) ---
+# --- (The rest of the backend code, like load_models_and_data, remains the same) ---
 @st.cache_resource
 def load_models_and_data(zip_file_path):
-    """
-    Loads data from a zip file, preprocesses it, and trains all necessary models.
-    """
     try:
         csv_file_name = 'planetary_system.csv'
         with zipfile.ZipFile(zip_file_path, 'r') as z:
@@ -60,7 +106,8 @@ def load_models_and_data(zip_file_path):
     except KeyError:
         st.error(f"Error: Could not find '{csv_file_name}' inside the zip archive.")
         return None
-
+    
+    # Model training logic... (omitted for brevity, it's the same as before)
     # --- Model 1: Planet Classification ---
     df_class = df.copy()
     conditions = [
@@ -73,12 +120,10 @@ def load_models_and_data(zip_file_path):
     df_class['planet_type'] = np.select(conditions, choices, default='Unknown')
     df_class.dropna(subset=['pl_orbper','st_mass','pl_dens','st_rad','st_teff', 'planet_type'], inplace=True)
     df_class = df_class[df_class['planet_type'].isin(['Neptune-like', 'Super-Earth', 'Terrestrial'])]
-    
     X_class = df_class[['pl_orbper','st_mass','pl_dens','st_rad','st_teff']]
     y_class = df_class['planet_type']
     model_classify = RandomForestClassifier(random_state=42)
     model_classify.fit(X_class, y_class)
-    
     # --- Model 2: Optimal Discovery Method ---
     df_disc = df.copy()
     features_disc = ['sy_snum', 'sy_pnum', 'sy_mnum', 'sy_dist', 'st_mass', 'st_rad', 'st_lum', 'st_logg', 'st_age', 'st_dens', 'st_met']
@@ -94,7 +139,6 @@ def load_models_and_data(zip_file_path):
     X_scaled_disc = scaler_disc.fit_transform(X_disc)
     model_discovery = RandomForestClassifier(n_estimators=100, random_state=42)
     model_discovery.fit(X_scaled_disc, y_encoded_disc)
-    
     # --- Model 4: Clustering for Archetypes ---
     df_cluster = df.copy()
     features_cluster = ['pl_orbsmax','pl_radj','pl_bmassj','pl_dens','pl_eqt','st_teff','st_met']
@@ -109,56 +153,57 @@ def load_models_and_data(zip_file_path):
     df_cluster['pca_2'] = X_pca[:, 1]
     df_cluster['archetype'] = labels_pca
     df_cluster = df_cluster[df_cluster['archetype'] != -1]
-
     # --- Model 5: Controversial Planet Prediction ---
     df_controv = df.copy()
     features_controv = ['pl_trandep', 'pl_rvamp', 'pl_radjerr1', 'pl_massjerr1', 'sy_snum', 'sy_pnum', 'discoverymethod', 'disc_facility']
     target_controv = 'pl_controv_flag'
     numerical_features = ['pl_trandep', 'pl_rvamp', 'pl_radjerr1', 'pl_massjerr1', 'sy_snum', 'sy_pnum']
     categorical_features = ['discoverymethod', 'disc_facility']
-    
     num_imputer = SimpleImputer(strategy='median')
     df_controv[numerical_features] = num_imputer.fit_transform(df_controv[numerical_features])
     cat_imputer = SimpleImputer(strategy='most_frequent')
     df_controv[categorical_features] = cat_imputer.fit_transform(df_controv[categorical_features])
-    
     encoders_controv = {col: LabelEncoder() for col in categorical_features}
     for col in categorical_features:
         df_controv[col] = encoders_controv[col].fit_transform(df_controv[col])
-        
     X_controv = df_controv[features_controv]
     y_controv = df_controv[target_controv]
     model_controversial = RandomForestClassifier(random_state=42, class_weight='balanced')
     model_controversial.fit(X_controv, y_controv)
-    
-    feature_importances = pd.DataFrame({
-        'feature': X_controv.columns, 'importance': model_controversial.feature_importances_
-    }).sort_values('importance', ascending=False)
+    feature_importances = pd.DataFrame({'feature': X_controv.columns, 'importance': model_controversial.feature_importances_}).sort_values('importance', ascending=False)
 
     return (df, model_classify, model_discovery, scaler_disc, label_encoder_disc, 
             df_cluster, model_controversial, feature_importances, 
             num_imputer, cat_imputer, encoders_controv, numerical_features, categorical_features)
 
-# --- 3. HELPER FUNCTIONS ---
+# (Helper functions calculate_habitable_zone and plot_habitable_zone are also the same)
 def calculate_habitable_zone(star_luminosity):
     inner_boundary = np.sqrt(star_luminosity / 1.1)
     outer_boundary = np.sqrt(star_luminosity / 0.53)
     return inner_boundary, outer_boundary
-
 def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
     hz_inner, hz_outer = calculate_habitable_zone(star_lum)
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[hz_inner, hz_outer, hz_outer, hz_inner], y=[-1, -1, 1, 1], fill="toself", fillcolor='rgba(0, 255, 0, 0.3)', line=dict(color='rgba(255,255,255,0)'), hoverinfo="text", text=f"Habitable Zone<br>{hz_inner:.2f} - {hz_outer:.2f} AU", name='Habitable Zone'))
     fig.add_trace(go.Scatter(x=[0], y=[0], mode='markers', marker=dict(color='yellow', size=20, symbol='star'), name='Host Star', hoverinfo="text", text="Host Star"))
     fig.add_trace(go.Scatter(x=[planet_orbit_au], y=[0], mode='markers', marker=dict(color='#00A2FF', size=12), name=planet_name, hoverinfo="text", text=f"{planet_name}<br>Orbit: {planet_orbit_au:.2f} AU"))
-    fig.update_layout(title="Planet's Position Relative to Habitable Zone", xaxis_title="Distance from Star (AU)", yaxis_visible=False, plot_bgcolor='#0c0e18', paper_bgcolor='#0c0e18', font_color='#E0E0E0', showlegend=False)
+    fig.update_layout(title="Planet's Position Relative to Habitable Zone", xaxis_title="Distance from Star (AU)", yaxis_visible=False, plot_bgcolor='rgba(12,14,24,0.8)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E0E0E0', showlegend=False)
     return fig
 
-# --- MAIN APP ---
+# --- MAIN APP LAYOUT ---
 apply_custom_style()
 
+# --- HEADER SECTION ---
+with st.container():
+    st.markdown('<div class="header-container">', unsafe_allow_html=True)
+    st.title("STELLER INTELLIGENCE")
+    st.markdown("### Analyze, classify, and explore exoplanets using machine learning. Predict discovery confidence and uncover new celestial archetypes.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Load data and models (this part is now after the header)
 loaded_data = load_models_and_data('planetary_system.zip')
 
+# Stop the app if data loading fails
 if loaded_data is None:
     st.stop()
 else:
@@ -166,17 +211,11 @@ else:
      df_cluster, model_controversial, feature_importances, 
      num_imputer, cat_imputer, encoders_controv, numerical_features, categorical_features) = loaded_data
 
-st.title("STELLER INTELLIGENCE")
-st.markdown("An interactive dashboard for exoplanet analysis, discovery, and habitability assessment.")
-# --- THIS IS THE CORRECTED LINE ---
-st.image("https://images.unsplash.com/photo-1543722530-535b55052358?q=80&w=2670&auto=format&fit=crop", use_container_width=True)
 st.markdown("---")
 
-# --- UI and Analysis Logic ---
-# (The rest of the app's UI code is identical)
-
-# --- 1. TARGET SELECTION ---
+# --- 1. TARGET SELECTION (and the rest of the app) ---
 st.header("1. Target Selection")
+# (The rest of the UI and analysis code is identical to the previous version)
 st.write("Begin by selecting a known exoplanet from the archive or define a hypothetical one for analysis.")
 col1, col2 = st.columns([2, 1])
 with col1:
@@ -188,10 +227,8 @@ with col2:
     st.write("")
     if st.button("Analyze a Hypothetical Planet"):
         st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
-
 target_data = None
 is_hypothetical = False
-
 if st.session_state.get('show_hypothetical_form', False):
     with st.form("hypothetical_form"):
         st.subheader("Define Hypothetical Planet Parameters")
@@ -214,10 +251,8 @@ if st.session_state.get('show_hypothetical_form', False):
             is_hypothetical = True
             st.session_state.show_hypothetical_form = False
             selected_planet_name = "Hypothetical Planet"
-
 if selected_planet_name != "Select a Planet..." and not is_hypothetical:
     target_data = df_main[df_main['pl_name'] == selected_planet_name].iloc[[0]]
-
 if target_data is not None:
     st.success(f"Analysis loaded for: **{selected_planet_name}**")
     st.markdown("---")
@@ -266,7 +301,7 @@ if target_data is not None and not is_hypothetical:
     selected_planet_cluster_info = df_cluster[df_cluster['pl_name'] == selected_planet_name]
     if not selected_planet_cluster_info.empty:
         fig_cluster.add_trace(go.Scatter(x=selected_planet_cluster_info['pca_1'], y=selected_planet_cluster_info['pca_2'], mode='markers', marker=dict(color='white', size=12, symbol='star', line=dict(color='black', width=1)), name=f'Selected: {selected_planet_name}'))
-fig_cluster.update_layout(xaxis_title='Principal Component 1', yaxis_title='Principal Component 2', plot_bgcolor='#161b22', paper_bgcolor='#0c0e18', font_color='#E0E0E0', legend_title_text='Archetype')
+fig_cluster.update_layout(xaxis_title='Principal Component 1', yaxis_title='Principal Component 2', plot_bgcolor='rgba(12,14,24,0.8)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E0E0E0', legend_title_text='Archetype')
 st.plotly_chart(fig_cluster, use_container_width=True)
 st.markdown("---")
 st.text("Steller Intelligence App | Created for University Project")
