@@ -38,8 +38,7 @@ def get_img_as_base64(file):
 
 def apply_custom_style():
     """Applies custom CSS for styling, including the background image."""
-    # UPDATED: Changed to bg2.jpg
-    img_base64 = get_img_as_base64("bg2.jpg")
+    img_base64 = get_img_as_base64("bg1.jpg")
     
     # Use background image if found, otherwise use a fallback color
     background_style = f"background-image: url(data:image/jpg;base64,{img_base64});" if img_base64 else "background-color: #0c0e18;"
@@ -54,7 +53,7 @@ def apply_custom_style():
             {background_style}
             background-size: cover;
             background-repeat: no-repeat;
-            /* UPDATED: Removed background-attachment: fixed; to allow scrolling */
+            background-attachment: fixed;
         }}
 
         /* Centered header with reduced size */
@@ -195,6 +194,7 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
 
 
 # --- 4. MAIN APP LAYOUT ---
+
 apply_custom_style()
 
 # --- HEADER SECTION ---
@@ -233,9 +233,6 @@ with col2:
 
 target_data = None
 is_hypothetical = False
-
-if 'show_hypothetical_form' not in st.session_state:
-    st.session_state.show_hypothetical_form = False
 
 if st.session_state.get('show_hypothetical_form', False):
     with st.form("hypothetical_form"):
