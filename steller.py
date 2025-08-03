@@ -37,7 +37,7 @@ def get_img_as_base64(file):
     return None
 
 def apply_custom_style():
-    """Applies custom CSS for styling, including the background image and animated borders."""
+    """Applies custom CSS for styling, including the background image."""
     img_base64 = get_img_as_base64("bg1.jpg")
     
     background_style = f"background-image: url(data:image/jpg;base64,{img_base64});" if img_base64 else "background-color: #0c0e18;"
@@ -46,12 +46,6 @@ def apply_custom_style():
         f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
-        
-        @property --angle {{
-          syntax: '<angle>';
-          initial-value: 0deg;
-          inherits: false;
-        }}
         
         .stApp {{
             {background_style}
@@ -78,27 +72,22 @@ def apply_custom_style():
             text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
         }}
 
-        /* Button and Selectbox Styling */
-        .stButton>button, .stSelectbox>div {{
-            border-radius: 50px; /* Rounded corners */
-            border: 3px solid #5a2a8a; /* Static purple border */
-            transition: all 0.3s ease-in-out; /* Smooth transition */
-            background-color: rgba(12, 14, 24, 0.6);
+        /* General styling for UI elements for better visibility */
+        .stButton>button {{
+            border-radius: 50px;
+            border: 2px solid #5a2a8a;
+            background-color: rgba(12, 14, 24, 0.7);
+            transition: all 0.3s ease-in-out;
         }}
-
-        /* Glow animation on hover only */
-        .stButton>button:hover, .stSelectbox>div:hover {{
-            --angle: 0deg;
-            border-image: conic-gradient(from var(--angle), #0c0e18, #5a2a8a, #a434b4, #5a2a8a, #0c0e18) 1;
-            animation: 5s an-border-spin linear infinite;
+        .stButton>button:hover {{
+            border-color: #a434b4;
+            box-shadow: 0 0 10px #a434b4;
         }}
-
-        @keyframes an-border-spin {{
-          to {{
-            --angle: 360deg;
-          }}
+        .stSelectbox>div, .stTextInput>div {{
+            border-radius: 50px;
+            border: 2px solid #5a2a8a;
+            background-color: rgba(12, 14, 24, 0.7);
         }}
-
         .stExpander, .stMetric, .stForm {{
             background-color: rgba(22, 27, 34, 0.85);
             border: 1px solid #30363d;
@@ -201,18 +190,15 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
 # --- 4. MAIN APP LAYOUT ---
 apply_custom_style()
 
-# --- Initialize session state for search toggle ---
 if 'search_mode' not in st.session_state:
     st.session_state.search_mode = False
 
-# --- HEADER SECTION ---
 with st.container():
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
     st.title("STELLER INTELLIGENCE")
     st.markdown("### Analyze, classify, and explore exoplanets using machine learning. Predict discovery confidence and uncover new celestial archetypes.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Load data and models
 loaded_data = load_models_and_data('planetary_system.zip')
 
 if loaded_data is None:
@@ -224,48 +210,49 @@ if loaded_data is None:
 
 st.markdown("---")
 
-# --- UPDATED: TARGET SELECTION WITH TOGGLE ---
+# --- UPDATED: TARGET SELECTION WITH LIVE SEARCH ---
 st.header("1. Target Selection")
 st.write("Begin by selecting a known exoplanet from the archive or define a hypothetical one for analysis.")
 
-# Create columns for the main selection widgets and the hypothetical planet button
 selection_col, hypothetical_col = st.columns([2, 1])
 
 with selection_col:
-    # Use nested columns for the widget and the toggle icon
     widget_col, icon_col = st.columns([5, 1])
 
-    # Get the full list of planets once
-    all_planets = ["Select a Planet..."] + list(df_main['pl_name'].unique())
+    all_planets = ["Select a Planet..."] + sorted(list(df_main['pl_name'].unique()))
 
-    # --- UI Toggle Logic ---
     if st.session_state.search_mode:
-        # --- SEARCH MODE ---
         with widget_col:
-            search_query = st.text_input("Search a planet by name...", label_visibility="collapsed", placeholder="Search for a planet...")
+            search_query = st.text_input("Search a planet by name...", label_visibility="collapsed", placeholder="Type to search for a planet...")
+            
+            # Live filtering of planets
             if search_query:
                 filtered_planets = [p for p in all_planets if search_query.lower() in p.lower()]
             else:
-                filtered_planets = all_planets # Show all if search is empty
-            selected_planet_name = st.selectbox("Select from results", options=filtered_planets, label_visibility="collapsed")
+                filtered_planets = all_planets
+
+            # Display "Planet not found" message if no results
+            if len(filtered_planets) <= 1 and search_query: # <=1 to account for "Select a Planet..."
+                 st.warning("Planet not found")
+                 selected_planet_name = "Select a Planet..."
+            else:
+                selected_planet_name = st.selectbox("Select from results", options=filtered_planets, label_visibility="collapsed")
         
         with icon_col:
-            if st.button("↩️ Back"):
+            if st.button("↩️"):
                 st.session_state.search_mode = False
-                st.rerun() # Rerun the script to update the UI
+                st.rerun()
     else:
-        # --- SELECT MODE (DEFAULT) ---
         with widget_col:
             selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive", options=all_planets, label_visibility="collapsed")
         
         with icon_col:
             if st.button("🔍"):
                 st.session_state.search_mode = True
-                st.rerun() # Rerun the script to update the UI
+                st.rerun()
 
 with hypothetical_col:
-    # This button is in its own column now
-    st.write("") # Spacer for vertical alignment
+    st.write("") 
     if st.button("Analyze a Hypothetical Planet"):
         st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
 
