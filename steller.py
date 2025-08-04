@@ -38,7 +38,7 @@ def get_img_as_base64(file):
 
 def apply_custom_style():
     """Applies custom CSS for styling, including the background image."""
-    img_base64 = get_img_as_base64("bg1.jpg")
+    img_base64 = get_img_as_base64("bg4.jpg")
     
     # Use background image if found, otherwise use a fallback color
     background_style = f"background-image: url(data:image/jpg;base64,{img_base64});" if img_base64 else "background-color: #0c0e18;"
@@ -317,4 +317,5 @@ st.plotly_chart(fig_cluster, use_container_width=True)
 
 st.markdown("---")
 st.text("Steller Intelligence App | Created for University Project")
+
 
