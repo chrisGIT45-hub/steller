@@ -13,17 +13,6 @@ from sklearn.cluster import DBSCAN
 import plotly.express as px
 import plotly.graph_objects as go
 import warnings
-# --- Add this code right after your imports ---
-import streamlit as st
-import os
-
-st.header("FILE DEBUGGER")
-st.write("The script is running in this directory:")
-st.code(os.getcwd())
-st.write("Here is a list of all files it can see in that directory:")
-st.code(os.listdir("."))
-st.stop() # This stops the rest of the app from running to focus on debugging
-# --- End of debugging code ---
 
 # Suppress warnings for a cleaner output
 warnings.filterwarnings('ignore')
@@ -240,7 +229,7 @@ with col2:
     st.write("") # for vertical alignment
     st.write("")
     if st.button("Analyze a Hypothetical Planet"):
-        st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical__form', False)
+        st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
 
 target_data = None
 is_hypothetical = False
@@ -325,10 +314,4 @@ fig_cluster = px.scatter(plot_df, x='pca_1', y='pca_2', color='archetype', hover
 if target_data is not None and not is_hypothetical:
     selected_planet_cluster_info = df_cluster[df_cluster['pl_name'] == selected_planet_name]
     if not selected_planet_cluster_info.empty:
-        fig_cluster.add_trace(go.Scatter(x=selected_planet_cluster_info['pca_1'], y=selected_planet_cluster_info['pca_2'], mode='markers', marker=dict(color='white', size=12, symbol='star', line=dict(color='black', width=1)), name=f'Selected: {selected_planet_name}'))
-fig_cluster.update_layout(xaxis_title='Principal Component 1', yaxis_title='Principal Component 2', plot_bgcolor='rgba(12,14,24,0.8)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E0E0E0', legend_title_text='Archetype')
-st.plotly_chart(fig_cluster, use_container_width=True)
-
-st.markdown("---")
-st.text("Steller Intelligence App | Created for University Project")
-
+        fig_cluster.
