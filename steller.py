@@ -37,53 +37,83 @@ def get_img_as_base64(file):
     return None
 
 def apply_custom_style():
-    """Applies custom CSS for styling, including the background image."""
-    img_base64 = get_img_as_base64("bg1.jpg")
+    """Applies custom CSS for the two-page structure with different backgrounds."""
+    bg2_base64 = get_img_as_base64("bg2.jpg")
+    bg3_base64 = get_img_as_base64("bg3.jpg")
     
-    # Use background image if found, otherwise use a fallback color
-    background_style = f"background-image: url(data:image/jpg;base64,{img_base64});" if img_base64 else "background-color: #0c0e18;"
+    hero_background_style = f"background-image: url(data:image/jpg;base64,{bg2_base64});" if bg2_base64 else "background-color: #0c0e18;"
+    app_background_style = f"background-image: url(data:image/jpg;base64,{bg3_base64});" if bg3_base64 else "background-color: #161b22;"
 
     st.markdown(
         f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
         
-        /* Main App Styling with Background Image */
+        /* Remove default padding from Streamlit's root container */
         .stApp {{
-            {background_style}
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
+            padding: 0;
+            margin: 0;
+            background-color: #0c0e18; /* Fallback for the whole page */
         }}
 
-        /* Centered header with reduced size */
-        .header-container {{
-            padding: 4rem 1rem; /* Vertical and horizontal padding */
+        /* --- Page 1: Hero Section Styling --- */
+        .hero-section {{
+            height: 100vh; /* Full viewport height */
+            {hero_background_style}
+            background-size: cover;
+            background-position: center;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
             color: white;
+            padding: 2rem;
         }}
-
-        .header-container h1 {{
+        .hero-section h1 {{
             font-family: 'Orbitron', sans-serif;
-            font-size: 3.5rem;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+            font-size: 4.5rem;
+            text-shadow: 3px 3px 10px rgba(0,0,0,0.8);
         }}
-        .header-container h3 {{
+        .hero-section h3 {{
             font-family: 'Roboto', sans-serif;
             max-width: 700px;
-            font-size: 1.2rem;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+            font-size: 1.3rem;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+        }}
+        .hero-section .scroll-down-arrow {{
+            margin-top: 3rem;
+            font-size: 3rem;
+            animation: bounce 2s infinite;
         }}
 
-        /* Styling for other UI elements for better visibility */
-        .stButton>button {{ border: 2px solid #00A2FF; background-color: rgba(12, 14, 24, 0.6); color: #00A2FF; }}
-        .stButton>button:hover {{ background-color: #00A2FF; color: #0c0e18; }}
-        .stExpander, .stMetric, .stSelectbox > div, .stForm {{
-            background-color: rgba(22, 27, 34, 0.85);
+        @keyframes bounce {{
+            0%, 20%, 50%, 80%, 100% {{
+                transform: translateY(0);
+            }}
+            40% {{
+                transform: translateY(-30px);
+            }}
+            60% {{
+                transform: translateY(-15px);
+            }}
+        }}
+
+        /* --- Page 2: App Section Styling --- */
+        .app-section {{
+            min-height: 100vh;
+            {app_background_style}
+            background-size: cover;
+            background-attachment: fixed; /* Parallax effect */
+            background-position: center;
+            padding: 3rem;
+        }}
+
+        /* Styling for UI elements inside the app-section */
+        .app-section .stButton>button {{ border: 2px solid #00A2FF; background-color: rgba(12, 14, 24, 0.7); color: #00A2FF; }}
+        .app-section .stButton>button:hover {{ background-color: #00A2FF; color: #0c0e18; }}
+        .app-section .stExpander, .app-section .stMetric, .app-section .stSelectbox > div, .app-section .stForm {{
+            background-color: rgba(22, 27, 34, 0.9);
             border: 1px solid #30363d;
             border-radius: 8px;
         }}
@@ -92,10 +122,9 @@ def apply_custom_style():
         unsafe_allow_html=True
     )
 
-# --- 3. DATA LOADING & MODEL TRAINING (CACHED) ---
+# (All backend functions like load_models_and_data, calculate_habitable_zone, etc., remain the same)
 @st.cache_resource
 def load_models_and_data(zip_file_path):
-    """Loads data from a zip file, preprocesses it, and trains all necessary models."""
     try:
         csv_file_name = 'planetary_system.csv'
         with zipfile.ZipFile(zip_file_path, 'r') as z:
@@ -107,8 +136,6 @@ def load_models_and_data(zip_file_path):
     except KeyError:
         st.error(f"Error: Could not find '{csv_file_name}' inside the zip archive.")
         return None
-
-    # --- Model 1: Planet Classification ---
     df_class = df.copy()
     conditions = [
         (df_class['pl_radj'] > 6) & (df_class['pl_bmassj'] > 0.5),
@@ -123,8 +150,6 @@ def load_models_and_data(zip_file_path):
     X_class = df_class[['pl_orbper','st_mass','pl_dens','st_rad','st_teff']]
     y_class = df_class['planet_type']
     model_classify = RandomForestClassifier(random_state=42).fit(X_class, y_class)
-
-    # --- Model 2: Optimal Discovery Method ---
     df_disc = df.copy()
     features_disc = ['sy_snum', 'sy_pnum', 'sy_mnum', 'sy_dist', 'st_mass', 'st_rad', 'st_lum', 'st_logg', 'st_age', 'st_dens', 'st_met']
     df_disc.dropna(subset=[ 'discoverymethod'] + features_disc, inplace=True)
@@ -137,8 +162,6 @@ def load_models_and_data(zip_file_path):
     scaler_disc = StandardScaler().fit(X_disc)
     X_scaled_disc = scaler_disc.transform(X_disc)
     model_discovery = RandomForestClassifier(n_estimators=100, random_state=42).fit(X_scaled_disc, y_encoded_disc)
-    
-    # --- Model 4: Clustering for Archetypes ---
     df_cluster = df.copy()
     features_cluster = ['pl_orbsmax','pl_radj','pl_bmassj','pl_dens','pl_eqt','st_teff','st_met']
     df_cluster.dropna(subset=features_cluster, inplace=True)
@@ -149,31 +172,23 @@ def load_models_and_data(zip_file_path):
     df_cluster['pca_2'] = X_pca[:, 1]
     df_cluster['archetype'] = labels_pca
     df_cluster = df_cluster[df_cluster['archetype'] != -1]
-
-    # --- Model 5: Controversial Planet Prediction ---
     df_controv = df.copy()
     features_controv = ['pl_trandep', 'pl_rvamp', 'pl_radjerr1', 'pl_massjerr1', 'sy_snum', 'sy_pnum', 'discoverymethod', 'disc_facility']
     numerical_features = ['pl_trandep', 'pl_rvamp', 'pl_radjerr1', 'pl_massjerr1', 'sy_snum', 'sy_pnum']
     categorical_features = ['discoverymethod', 'disc_facility']
-    
     num_imputer = SimpleImputer(strategy='median').fit(df_controv[numerical_features])
     df_controv[numerical_features] = num_imputer.transform(df_controv[numerical_features])
-    
     cat_imputer = SimpleImputer(strategy='most_frequent').fit(df_controv[categorical_features])
     df_controv[categorical_features] = cat_imputer.transform(df_controv[categorical_features])
-    
     encoders_controv = {col: LabelEncoder().fit(df_controv[col]) for col in categorical_features}
     for col in categorical_features:
         df_controv[col] = encoders_controv[col].transform(df_controv[col])
-        
     X_controv = df_controv[features_controv]
     y_controv = df_controv['pl_controv_flag']
     model_controversial = RandomForestClassifier(random_state=42, class_weight='balanced').fit(X_controv, y_controv)
-    
     feature_importances = pd.DataFrame({
         'feature': X_controv.columns, 'importance': model_controversial.feature_importances_
     }).sort_values('importance', ascending=False)
-
     return (df, model_classify, model_discovery, scaler_disc, label_encoder_disc, 
             df_cluster, model_controversial, feature_importances, 
             num_imputer, cat_imputer, encoders_controv, numerical_features, categorical_features)
@@ -182,7 +197,6 @@ def calculate_habitable_zone(star_luminosity):
     inner_boundary = np.sqrt(star_luminosity / 1.1)
     outer_boundary = np.sqrt(star_luminosity / 0.53)
     return inner_boundary, outer_boundary
-
 def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
     hz_inner, hz_outer = calculate_habitable_zone(star_lum)
     fig = go.Figure()
@@ -192,30 +206,32 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
     fig.update_layout(title="Planet's Position Relative to Habitable Zone", xaxis_title="Distance from Star (AU)", yaxis_visible=False, plot_bgcolor='rgba(12,14,24,0.8)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E0E0E0', showlegend=False)
     return fig
 
-
 # --- 4. MAIN APP LAYOUT ---
-
 apply_custom_style()
 
-# --- HEADER SECTION ---
-with st.container():
-    st.markdown('<div class="header-container">', unsafe_allow_html=True)
-    st.title("STELLER INTELLIGENCE")
-    st.markdown("### Analyze, classify, and explore exoplanets using machine learning. Predict discovery confidence and uncover new celestial archetypes.")
-    st.markdown('</div>', unsafe_allow_html=True)
+# --- Page 1: Hero Section ---
+st.markdown("""
+    <div class="hero-section">
+        <h1>STELLER INTELLIGENCE</h1>
+        <h3>Analyze, classify, and explore exoplanets using machine learning. Predict discovery confidence and uncover new celestial archetypes.</h3>
+        <div class="scroll-down-arrow">👇</div>
+    </div>
+""", unsafe_allow_html=True)
+
+
+# --- Page 2: App Section ---
+st.markdown('<div class="app-section">', unsafe_allow_html=True)
 
 # Load data and models
 loaded_data = load_models_and_data('planetary_system.zip')
 
-# Stop the app if data loading fails
 if loaded_data is None:
+    st.markdown('</div>', unsafe_allow_html=True) # Close the div even if data fails
     st.stop()
 
 (df_main, model_classify, model_discovery, scaler_disc, label_encoder_disc, 
  df_cluster, model_controversial, feature_importances, 
  num_imputer, cat_imputer, encoders_controv, numerical_features, categorical_features) = loaded_data
-
-st.markdown("---")
 
 # --- TARGET SELECTION ---
 st.header("1. Target Selection")
@@ -224,15 +240,18 @@ col1, col2 = st.columns([2, 1])
 with col1:
     planet_options = list(df_main['pl_name'].unique())
     planet_options.insert(0, "Select a Planet...")
-    selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive:", options=planet_options)
+    selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive:", options=planet_options, label_visibility="collapsed")
 with col2:
-    st.write("") # for vertical alignment
+    st.write("") 
     st.write("")
     if st.button("Analyze a Hypothetical Planet"):
         st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
 
 target_data = None
 is_hypothetical = False
+
+if 'show_hypothetical_form' not in st.session_state:
+    st.session_state.show_hypothetical_form = False
 
 if st.session_state.get('show_hypothetical_form', False):
     with st.form("hypothetical_form"):
@@ -249,7 +268,6 @@ if st.session_state.get('show_hypothetical_form', False):
         sy_dist = c2.number_input("Distance from Earth (parsecs)", min_value=1.0, value=50.0)
         st_lum = c3.number_input("Stellar Luminosity (log(Solar))", min_value=-5.0, value=0.0)
         pl_orbsmax = c1.number_input("Planet Orbit Semi-Major Axis (AU)", min_value=0.01, value=1.0)
-        
         submitted = st.form_submit_button("Analyze This Planet")
         if submitted:
             hypothetical_dict = {'pl_name': 'Hypothetical Planet','pl_orbper': [pl_orbper],'st_mass': [st_mass],'pl_dens': [pl_dens],'st_rad': [st_rad],'st_teff': [st_teff],'sy_snum': [sy_snum],'sy_pnum': [sy_pnum],'sy_mnum': [0],'sy_dist': [sy_dist],'st_lum': [st_lum],'st_logg': [4.44],'st_age': [4.6],'st_met': [0.0],'pl_trandep': [1.0],'pl_rvamp': [1.0],'pl_radjerr1': [0.01],'pl_massjerr1': [0.01],'discoverymethod': ['Transit'],'disc_facility': ['Kepler'],'pl_controv_flag': [0],'pl_orbsmax': [pl_orbsmax],'pl_radj': [0.1],'pl_bmassj': [0.01],'pl_eqt': [288]}
@@ -290,7 +308,6 @@ if target_data is not None:
             st.metric(label="Discovery Confidence Score", value=f"{confidence_score:.1f}%")
             with st.expander("Show Key Confidence Factors"):
                 st.dataframe(feature_importances.head())
-        
         disc_features_cols = ['sy_snum', 'sy_pnum', 'sy_mnum', 'sy_dist', 'st_mass', 'st_rad', 'st_lum', 'st_logg', 'st_age', 'st_dens', 'st_met']
         scaled_disc_features = scaler_disc.transform(target_data[disc_features_cols])
         method_pred = label_encoder_disc.inverse_transform(model_discovery.predict(scaled_disc_features))[0]
@@ -317,3 +334,5 @@ st.plotly_chart(fig_cluster, use_container_width=True)
 
 st.markdown("---")
 st.text("Steller Intelligence App | Created for University Project")
+
+st.markdown('</div>', unsafe_allow_html=True) # Close the app-section div
