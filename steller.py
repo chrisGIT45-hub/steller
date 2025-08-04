@@ -314,4 +314,9 @@ fig_cluster = px.scatter(plot_df, x='pca_1', y='pca_2', color='archetype', hover
 if target_data is not None and not is_hypothetical:
     selected_planet_cluster_info = df_cluster[df_cluster['pl_name'] == selected_planet_name]
     if not selected_planet_cluster_info.empty:
-        fig_cluster.
+        fig_cluster.add_trace(go.Scatter(x=selected_planet_cluster_info['pca_1'], y=selected_planet_cluster_info['pca_2'], mode='markers', marker=dict(color='white', size=12, symbol='star', line=dict(color='black', width=1)), name=f'Selected: {selected_planet_name}'))
+fig_cluster.update_layout(xaxis_title='Principal Component 1', yaxis_title='Principal Component 2', plot_bgcolor='rgba(12,14,24,0.8)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E0E0E0', legend_title_text='Archetype')
+st.plotly_chart(fig_cluster, use_container_width=True)
+
+st.markdown("---")
+st.text("Steller Intelligence App | Created for University Project")
