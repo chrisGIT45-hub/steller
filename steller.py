@@ -13,6 +13,17 @@ from sklearn.cluster import DBSCAN
 import plotly.express as px
 import plotly.graph_objects as go
 import warnings
+# --- Add this code right after your imports ---
+import streamlit as st
+import os
+
+st.header("FILE DEBUGGER")
+st.write("The script is running in this directory:")
+st.code(os.getcwd())
+st.write("Here is a list of all files it can see in that directory:")
+st.code(os.listdir("."))
+st.stop() # This stops the rest of the app from running to focus on debugging
+# --- End of debugging code ---
 
 # Suppress warnings for a cleaner output
 warnings.filterwarnings('ignore')
@@ -320,3 +331,4 @@ st.plotly_chart(fig_cluster, use_container_width=True)
 
 st.markdown("---")
 st.text("Steller Intelligence App | Created for University Project")
+
