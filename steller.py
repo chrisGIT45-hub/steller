@@ -37,25 +37,6 @@ def get_img_as_base64(file):
     return None
 
 def apply_custom_style():
-
-    # --- 4. MAIN APP LAYOUT ---
-
-apply_custom_style()
-
-# --- START: Temporary Debugging Code ---
-st.header("DEBUGGING: Files in Repository")
-st.write("Your app is running from the directory below and can see these files:")
-try:
-    st.code(os.listdir("."))
-except Exception as e:
-    st.error(f"Could not list directory contents: {e}")
-st.markdown("---")
-# --- END: Temporary Debugging Code ---
-
-
-# --- HEADER SECTION ---
-with st.container():
-# ... (rest of your code) ...
     """Applies custom CSS for styling, including the background image."""
     img_base64 = get_img_as_base64("bg1.jpg")
     
@@ -243,15 +224,18 @@ col1, col2 = st.columns([2, 1])
 with col1:
     planet_options = list(df_main['pl_name'].unique())
     planet_options.insert(0, "Select a Planet...")
-    selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive:", options=planet_options)
+    selected_planet_name = st.selectbox("Select a Planet from the NASA Exoplanet Archive:", options=planet_options, label_visibility="collapsed")
 with col2:
     st.write("") # for vertical alignment
     st.write("")
     if st.button("Analyze a Hypothetical Planet"):
-        st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical_form', False)
+        st.session_state.show_hypothetical_form = not st.session_state.get('show_hypothetical__form', False)
 
 target_data = None
 is_hypothetical = False
+
+if 'show_hypothetical_form' not in st.session_state:
+    st.session_state.show_hypothetical_form = False
 
 if st.session_state.get('show_hypothetical_form', False):
     with st.form("hypothetical_form"):
@@ -336,5 +320,3 @@ st.plotly_chart(fig_cluster, use_container_width=True)
 
 st.markdown("---")
 st.text("Steller Intelligence App | Created for University Project")
-
-
