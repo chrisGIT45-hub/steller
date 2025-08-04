@@ -49,19 +49,18 @@ def apply_custom_style():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
         
-        /* Remove default padding from Streamlit's root container */
         .stApp {{
             padding: 0;
             margin: 0;
-            background-color: #0c0e18; /* Fallback for the whole page */
+            background-color: #0c0e18;
         }}
 
         /* --- Page 1: Hero Section Styling --- */
         .hero-section {{
-            height: 100vh; /* Full viewport height */
+            height: 100vh;
             {hero_background_style}
             background-size: cover;
-            background-position: center;
+            background-position: center center;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -81,31 +80,14 @@ def apply_custom_style():
             font-size: 1.3rem;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
         }}
-        .hero-section .scroll-down-arrow {{
-            margin-top: 3rem;
-            font-size: 3rem;
-            animation: bounce 2s infinite;
-        }}
-
-        @keyframes bounce {{
-            0%, 20%, 50%, 80%, 100% {{
-                transform: translateY(0);
-            }}
-            40% {{
-                transform: translateY(-30px);
-            }}
-            60% {{
-                transform: translateY(-15px);
-            }}
-        }}
 
         /* --- Page 2: App Section Styling --- */
         .app-section {{
             min-height: 100vh;
             {app_background_style}
             background-size: cover;
-            background-attachment: fixed; /* Parallax effect */
-            background-position: center;
+            background-attachment: fixed;
+            background-position: center center;
             padding: 3rem;
         }}
 
@@ -122,7 +104,7 @@ def apply_custom_style():
         unsafe_allow_html=True
     )
 
-# (All backend functions like load_models_and_data, calculate_habitable_zone, etc., remain the same)
+# --- 3. DATA LOADING & MODEL TRAINING (CACHED) ---
 @st.cache_resource
 def load_models_and_data(zip_file_path):
     try:
@@ -136,6 +118,8 @@ def load_models_and_data(zip_file_path):
     except KeyError:
         st.error(f"Error: Could not find '{csv_file_name}' inside the zip archive.")
         return None
+
+    # --- Model 1: Planet Classification ---
     df_class = df.copy()
     conditions = [
         (df_class['pl_radj'] > 6) & (df_class['pl_bmassj'] > 0.5),
@@ -150,6 +134,8 @@ def load_models_and_data(zip_file_path):
     X_class = df_class[['pl_orbper','st_mass','pl_dens','st_rad','st_teff']]
     y_class = df_class['planet_type']
     model_classify = RandomForestClassifier(random_state=42).fit(X_class, y_class)
+
+    # --- Model 2: Optimal Discovery Method ---
     df_disc = df.copy()
     features_disc = ['sy_snum', 'sy_pnum', 'sy_mnum', 'sy_dist', 'st_mass', 'st_rad', 'st_lum', 'st_logg', 'st_age', 'st_dens', 'st_met']
     df_disc.dropna(subset=[ 'discoverymethod'] + features_disc, inplace=True)
@@ -162,6 +148,8 @@ def load_models_and_data(zip_file_path):
     scaler_disc = StandardScaler().fit(X_disc)
     X_scaled_disc = scaler_disc.transform(X_disc)
     model_discovery = RandomForestClassifier(n_estimators=100, random_state=42).fit(X_scaled_disc, y_encoded_disc)
+    
+    # --- Model 4: Clustering for Archetypes ---
     df_cluster = df.copy()
     features_cluster = ['pl_orbsmax','pl_radj','pl_bmassj','pl_dens','pl_eqt','st_teff','st_met']
     df_cluster.dropna(subset=features_cluster, inplace=True)
@@ -172,23 +160,31 @@ def load_models_and_data(zip_file_path):
     df_cluster['pca_2'] = X_pca[:, 1]
     df_cluster['archetype'] = labels_pca
     df_cluster = df_cluster[df_cluster['archetype'] != -1]
+
+    # --- Model 5: Controversial Planet Prediction ---
     df_controv = df.copy()
     features_controv = ['pl_trandep', 'pl_rvamp', 'pl_radjerr1', 'pl_massjerr1', 'sy_snum', 'sy_pnum', 'discoverymethod', 'disc_facility']
     numerical_features = ['pl_trandep', 'pl_rvamp', 'pl_radjerr1', 'pl_massjerr1', 'sy_snum', 'sy_pnum']
     categorical_features = ['discoverymethod', 'disc_facility']
+    
     num_imputer = SimpleImputer(strategy='median').fit(df_controv[numerical_features])
     df_controv[numerical_features] = num_imputer.transform(df_controv[numerical_features])
+    
     cat_imputer = SimpleImputer(strategy='most_frequent').fit(df_controv[categorical_features])
     df_controv[categorical_features] = cat_imputer.transform(df_controv[categorical_features])
+    
     encoders_controv = {col: LabelEncoder().fit(df_controv[col]) for col in categorical_features}
     for col in categorical_features:
         df_controv[col] = encoders_controv[col].transform(df_controv[col])
+        
     X_controv = df_controv[features_controv]
     y_controv = df_controv['pl_controv_flag']
     model_controversial = RandomForestClassifier(random_state=42, class_weight='balanced').fit(X_controv, y_controv)
+    
     feature_importances = pd.DataFrame({
         'feature': X_controv.columns, 'importance': model_controversial.feature_importances_
     }).sort_values('importance', ascending=False)
+
     return (df, model_classify, model_discovery, scaler_disc, label_encoder_disc, 
             df_cluster, model_controversial, feature_importances, 
             num_imputer, cat_imputer, encoders_controv, numerical_features, categorical_features)
@@ -197,6 +193,7 @@ def calculate_habitable_zone(star_luminosity):
     inner_boundary = np.sqrt(star_luminosity / 1.1)
     outer_boundary = np.sqrt(star_luminosity / 0.53)
     return inner_boundary, outer_boundary
+
 def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
     hz_inner, hz_outer = calculate_habitable_zone(star_lum)
     fig = go.Figure()
@@ -206,6 +203,7 @@ def plot_habitable_zone(star_lum, planet_orbit_au, planet_name):
     fig.update_layout(title="Planet's Position Relative to Habitable Zone", xaxis_title="Distance from Star (AU)", yaxis_visible=False, plot_bgcolor='rgba(12,14,24,0.8)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E0E0E0', showlegend=False)
     return fig
 
+
 # --- 4. MAIN APP LAYOUT ---
 apply_custom_style()
 
@@ -214,7 +212,6 @@ st.markdown("""
     <div class="hero-section">
         <h1>STELLER INTELLIGENCE</h1>
         <h3>Analyze, classify, and explore exoplanets using machine learning. Predict discovery confidence and uncover new celestial archetypes.</h3>
-        <div class="scroll-down-arrow">👇</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -308,6 +305,7 @@ if target_data is not None:
             st.metric(label="Discovery Confidence Score", value=f"{confidence_score:.1f}%")
             with st.expander("Show Key Confidence Factors"):
                 st.dataframe(feature_importances.head())
+        
         disc_features_cols = ['sy_snum', 'sy_pnum', 'sy_mnum', 'sy_dist', 'st_mass', 'st_rad', 'st_lum', 'st_logg', 'st_age', 'st_dens', 'st_met']
         scaled_disc_features = scaler_disc.transform(target_data[disc_features_cols])
         method_pred = label_encoder_disc.inverse_transform(model_discovery.predict(scaled_disc_features))[0]
